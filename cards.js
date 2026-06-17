@@ -209,10 +209,10 @@ const CARDS = [
     rewards: { other: { rate: 1 } },
     choose: {
       rate: 5,
-      categories: ["dining", "gas", "groceries", "transit", "streaming", "drugstores", "entertainment"],
+      categories: ["dining", "gas", "groceries", "transit", "travel", "streaming", "drugstores", "entertainment"],
       note: "Your active 5% category (up to $500/cycle, then 1%).",
     },
-    note: "Earns 5% on only ONE eligible category each billing cycle — your highest-spend one, up to $500 (then 1%). Set which below.",
+    note: "Earns 5% on only ONE eligible category each cycle — your highest-spend one, up to $500 (then 1%). Eligible: restaurants, gas, groceries, select travel & transit, streaming, drugstores, home improvement, fitness clubs, live entertainment. Closed to new applicants (May 2026); existing cardmembers unaffected. Set which below.",
   },
   {
     id: "costco-citi", name: "Costco Anywhere Visa", issuer: "Citi", annualFee: 0,
