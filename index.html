@@ -37,7 +37,10 @@
     </section>
 
     <section class="panel">
-      <h2>Best card by category</h2>
+      <div class="panel-head">
+        <h2>Best card by category</h2>
+        <button id="toggle-reorder" class="link-btn" type="button">↕ Reorder</button>
+      </div>
       <p id="empty" class="empty hidden">Add the cards you own above and your recommendations will appear here.</p>
       <p id="rotating-tip" class="tip hidden"></p>
       <div id="cheatsheet"></div>
@@ -46,7 +49,7 @@
     </section>
 
     <footer class="foot">
-      <p>Rates are hand-curated, last updated <span id="updated"></span>. Programs change and exclusions apply — always confirm with your card's issuer. Points cards (Sapphire, Amex Gold, etc.) aren't included yet.</p>
+      <p>Rates are hand-curated, last updated <span id="updated"></span>. Programs change and exclusions apply — always confirm with your card's issuer. Points-card values are estimates you can set per card.</p>
       <p class="muted">Add or edit cards in <code>cards.js</code>.</p>
     </footer>
   </main>

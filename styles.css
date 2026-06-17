@@ -245,6 +245,35 @@ details[open] > summary .chev { transform: rotate(90deg); }
 .merchant-others { font-size: 0.86rem; color: var(--muted); margin-top: 8px; }
 .merchant-others .logo { vertical-align: middle; }
 
+/* category reordering (edit mode) */
+.link-btn.active { font-weight: 700; }
+.reorder-bar { font-size: 0.85rem; color: var(--muted); margin: 4px 0 12px; }
+.reorder-list { display: flex; flex-direction: column; gap: 8px; }
+.reorder-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.reorder-row.dragging { opacity: 0.6; border-color: var(--accent); }
+.reorder-handle { cursor: grab; touch-action: none; user-select: none; color: var(--muted); font-size: 1.15rem; }
+.ro-label { flex: 1; font-weight: 600; }
+.ro-btns { display: flex; gap: 6px; }
+.ro-btns button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+}
+.ro-btns button:active { background: var(--chip-on); color: #fff; }
+
 .cat {
   border: 1px solid var(--border);
   border-radius: 10px;

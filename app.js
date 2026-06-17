@@ -74,6 +74,54 @@ function setChoice(cardId, keys) {
   localStorage.setItem(CHOICE_KEY, JSON.stringify(o));
 }
 
+/* ---------- user-customizable category order ---------- */
+const CATORDER_KEY = "cardpointer.catOrder.v1";
+let editMode = false;
+function getCatOrder() {
+  try {
+    const o = JSON.parse(localStorage.getItem(CATORDER_KEY));
+    return Array.isArray(o) ? o : null;
+  } catch {
+    return null;
+  }
+}
+function setCatOrder(keys) {
+  localStorage.setItem(CATORDER_KEY, JSON.stringify(keys));
+}
+// Categories in the user's saved order; any new/unsaved ones keep default order.
+function orderedCategories() {
+  const saved = getCatOrder();
+  if (!saved) return CATEGORIES.slice();
+  const byKey = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
+  const out = [];
+  const seen = new Set();
+  for (const k of saved) if (byKey[k] && !seen.has(k)) { out.push(byKey[k]); seen.add(k); }
+  for (const c of CATEGORIES) if (!seen.has(c.key)) out.push(c);
+  return out;
+}
+function moveCategory(key, dir) {
+  const keys = orderedCategories().map((c) => c.key);
+  const i = keys.indexOf(key);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= keys.length) return;
+  [keys[i], keys[j]] = [keys[j], keys[i]];
+  setCatOrder(keys);
+  renderResults();
+}
+function renderReorderList(box) {
+  const rows = orderedCategories()
+    .map(
+      (cat) => `<div class="reorder-row" data-key="${cat.key}">
+        <span class="reorder-handle" title="Drag to reorder">⠿</span>
+        <span class="ro-label">${cat.icon} ${escapeHtml(cat.label)}</span>
+        <span class="ro-btns"><button class="ro-up" type="button" aria-label="Move up">↑</button><button class="ro-down" type="button" aria-label="Move down">↓</button></span>
+      </div>`
+    )
+    .join("");
+  box.innerHTML = `<p class="reorder-bar">Drag ⠿ or use ↑ ↓ to reorder. <button class="link-btn" id="reorder-reset" type="button">Reset to default</button></p>
+    <div class="reorder-list">${rows}</div>`;
+}
+
 // Card payment network, for vendors that accept only some networks (e.g. Costco
 // in-store = Visa). Uses NETWORK_OVERRIDES, then issuer/name; null = unknown.
 function cardNetwork(card) {
@@ -260,6 +308,16 @@ function renderResults() {
   const matrixWrap = document.getElementById("matrix-wrap");
   const tip = document.getElementById("rotating-tip");
 
+  if (editMode) {
+    empty.classList.add("hidden");
+    tip.classList.add("hidden");
+    toggle.classList.add("hidden");
+    matrixWrap.classList.add("hidden");
+    matrixWrap.innerHTML = "";
+    renderReorderList(cheat);
+    return;
+  }
+
   if (owned.length === 0) {
     empty.classList.remove("hidden");
     cheat.innerHTML = "";
@@ -292,7 +350,7 @@ function renderResults() {
   }
 
   // "Best card per category" list.
-  cheat.innerHTML = CATEGORIES.map((cat) => {
+  cheat.innerHTML = orderedCategories().map((cat) => {
     const rank = rankForCategory(cat.key, owned);
     const top = rank[0];
     const tie = rank[1] && rank[1].rate === top.rate;
@@ -328,7 +386,7 @@ function renderMatrix(owned) {
     .map((c) => `<th>${issuerBadge(c.issuer)}<br>${escapeHtml(c.name)}</th>`)
     .join("")}</tr>`;
 
-  const body = CATEGORIES.map((cat) => {
+  const body = orderedCategories().map((cat) => {
     const cells = owned.map((c) => rateInfoFor(c, cat.key));
     const max = Math.max(...cells.map((x) => x.rate));
     const tds = cells
@@ -562,6 +620,56 @@ function init() {
   document.getElementById("merchant-result").addEventListener("click", (e) => {
     if (e.target.closest(".merchant-card.egg")) floatHearts();
   });
+
+  // Category reordering: edit mode + ↑↓ buttons + drag (pointer events, touch-friendly).
+  const reorderBtn = document.getElementById("toggle-reorder");
+  reorderBtn.addEventListener("click", () => {
+    editMode = !editMode;
+    reorderBtn.textContent = editMode ? "Done" : "↕ Reorder";
+    reorderBtn.classList.toggle("active", editMode);
+    renderResults();
+  });
+  const cs = document.getElementById("cheatsheet");
+  cs.addEventListener("click", (e) => {
+    const up = e.target.closest(".ro-up");
+    const down = e.target.closest(".ro-down");
+    if (up) moveCategory(up.closest(".reorder-row").dataset.key, -1);
+    else if (down) moveCategory(down.closest(".reorder-row").dataset.key, 1);
+    else if (e.target.closest("#reorder-reset")) {
+      localStorage.removeItem(CATORDER_KEY);
+      renderResults();
+    }
+  });
+  let dragRow = null;
+  cs.addEventListener("pointerdown", (e) => {
+    const handle = e.target.closest(".reorder-handle");
+    if (!handle) return;
+    dragRow = handle.closest(".reorder-row");
+    dragRow.classList.add("dragging");
+    try { handle.setPointerCapture(e.pointerId); } catch {}
+    e.preventDefault();
+  });
+  cs.addEventListener("pointermove", (e) => {
+    if (!dragRow) return;
+    e.preventDefault();
+    const list = cs.querySelector(".reorder-list");
+    if (!list) return;
+    const after = [...list.querySelectorAll(".reorder-row:not(.dragging)")].find((row) => {
+      const r = row.getBoundingClientRect();
+      return e.clientY < r.top + r.height / 2;
+    });
+    if (after) list.insertBefore(dragRow, after);
+    else list.appendChild(dragRow);
+  });
+  const endDrag = () => {
+    if (!dragRow) return;
+    dragRow.classList.remove("dragging");
+    dragRow = null;
+    const list = cs.querySelector(".reorder-list");
+    if (list) setCatOrder([...list.querySelectorAll(".reorder-row")].map((r) => r.dataset.key));
+  };
+  cs.addEventListener("pointerup", endDrag);
+  cs.addEventListener("pointercancel", endDrag);
 
   renderPicker();
   renderResults();

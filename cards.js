@@ -115,6 +115,8 @@ const CATEGORIES = [
   { key: "drugstores",    label: "Drugstores",           icon: "💊" },
   { key: "entertainment", label: "Entertainment",        icon: "🎟️" },
   { key: "wholesale",     label: "Warehouse Clubs",      icon: "🏬" },
+  { key: "home",          label: "Home Improvement",     icon: "🛠️" },
+  { key: "fitness",       label: "Fitness / Gym",        icon: "🏋️" },
   { key: "other",         label: "Everything else",      icon: "💳" },
 ];
 
@@ -209,7 +211,7 @@ const CARDS = [
     rewards: { other: { rate: 1 } },
     choose: {
       rate: 5,
-      categories: ["dining", "gas", "groceries", "transit", "travel", "streaming", "drugstores", "entertainment"],
+      categories: ["dining", "gas", "groceries", "transit", "travel", "streaming", "drugstores", "entertainment", "home", "fitness"],
       note: "Your active 5% category (up to $500/cycle, then 1%).",
     },
     note: "Earns 5% on only ONE eligible category each cycle — your highest-spend one, up to $500 (then 1%). Eligible: restaurants, gas, groceries, select travel & transit, streaming, drugstores, home improvement, fitness clubs, live entertainment. Closed to new applicants (May 2026); existing cardmembers unaffected. Set which below.",
@@ -282,7 +284,7 @@ const CARDS = [
       cap: "up to $1,500/qtr, then 1%; activation required",
       calendar: {
         "2026-Q1": { keys: ["groceries", "wholesale", "streaming"], label: "Grocery stores, wholesale clubs, select streaming" },
-        "2026-Q2": { keys: ["dining"], label: "Restaurants & home improvement stores" },
+        "2026-Q2": { keys: ["dining", "home"], label: "Restaurants & home improvement stores" },
         "2026-Q3": { keys: ["gas", "transit", "drugstores"], label: "Gas & EV charging, public transit, flights, drugstores" },
         // Q4 2026: not announced yet — add it here when Discover publishes it.
       },
@@ -310,7 +312,7 @@ const CARDS = [
     rewards: { groceries: { rate: 2 }, wholesale: { rate: 2 }, other: { rate: 1 } },
     choose: {
       rate: 3,
-      categories: ["dining", "gas", "online", "travel", "drugstores"],
+      categories: ["dining", "gas", "online", "travel", "drugstores", "home"],
       note: "Your chosen 3% category.",
     },
     note: "Pick ONE 3% category (below); also 2% at groceries & warehouse clubs. Bonus rates apply to the first $2,500/qtr combined. Boosted up to 75% for Preferred Rewards members.",
@@ -340,7 +342,8 @@ const CARDS = [
   {
     id: "usbank-cashplus", name: "Cash+", issuer: "U.S. Bank", annualFee: 0,
     rewards: {
-      streaming: { rate: 5, note: "Eligible as a 5% pick (TV, internet & streaming category)." },
+      streaming: { rate: 5, note: "Eligible as a 5% pick (TV, internet & streaming)." },
+      fitness: { rate: 5, note: "Eligible as a 5% pick (gyms/fitness centers)." },
       other: { rate: 1 },
     },
     note: "Choose two 5% categories (up to $2,000/qtr combined) and one 2% everyday category from U.S. Bank's lists. Many 5% options are niche (cell phone, utilities, fast food, etc.).",
@@ -586,7 +589,7 @@ const CARDS = [
   {
     id: "citi-strata", name: "Strata", issuer: "Citi", annualFee: 0,
     points: "Citi ThankYou",
-    rewards: { groceries: { rate: 3 }, transit: { rate: 3 }, gas: { rate: 3, note: "Incl. EV charging." }, streaming: { rate: 3, note: "Only if chosen as your self-select 3x category." }, entertainment: { rate: 3, note: "Live entertainment — only if chosen as your self-select 3x category." }, other: { rate: 1 } },
+    rewards: { groceries: { rate: 3 }, transit: { rate: 3 }, gas: { rate: 3, note: "Incl. EV charging." }, streaming: { rate: 3, note: "Only if chosen as your self-select 3x category." }, entertainment: { rate: 3, note: "Live entertainment — only if chosen as your self-select 3x category." }, fitness: { rate: 3, note: "Fitness clubs — only if chosen as your self-select 3x category." }, other: { rate: 1 } },
     aka: ["strata", "thankyou", "thank you"],
     note: "No-AF ThankYou card. 3x supermarkets, transit, gas & EV; plus 3x on ONE self-select category.",
   },
@@ -766,8 +769,16 @@ const MERCHANTS = [
   // Other retail (base rate; perks noted)
   { name: "Apple", category: "other", aliases: ["apple store", "apple.com"], note: "Apple Card earns 3% at Apple." },
   { name: "Best Buy", category: "other" },
-  { name: "Home Depot", category: "other", note: "Home improvement — sometimes a rotating 5% category, so check the calendar above." },
-  { name: "Lowe's", category: "other", aliases: ["lowes"], note: "Home improvement — sometimes a rotating 5% category, so check the calendar above." },
   { name: "Nike", category: "other", note: "Apple Card earns 3% at Nike." },
   { name: "IKEA", category: "other" },
+  // Home improvement
+  { name: "Home Depot", category: "home" },
+  { name: "Lowe's", category: "home", aliases: ["lowes"] },
+  { name: "Menards", category: "home" },
+  { name: "Ace Hardware", category: "home", aliases: ["ace hardware"] },
+  // Fitness / gyms
+  { name: "Planet Fitness", category: "fitness" },
+  { name: "LA Fitness", category: "fitness" },
+  { name: "Equinox", category: "fitness" },
+  { name: "Crunch Fitness", category: "fitness", aliases: ["crunch"] },
 ];
