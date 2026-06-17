@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>CardPointer — best card for every purchase</title>
+  <meta name="description" content="Pick the credit cards you own and instantly see which one earns the most in each spending category." />
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <h1>💳 CardPointer</h1>
+      <p class="tag">Pick your cards — see which one earns the most in every category.</p>
+    </header>
+
+    <details class="panel" id="wallet-panel">
+      <summary class="fold-summary">
+        <h2 class="fold-title">Your wallet <span id="wallet-count" class="count"></span></h2>
+        <span class="chev" aria-hidden="true">▸</span>
+      </summary>
+      <input id="search" class="search" type="search" placeholder="Search cards…" autocomplete="off" />
+      <p class="wallet-hint muted">For 💎 points cards, set what you think a point is worth — it changes the rankings.</p>
+      <div id="picker"></div>
+      <button id="clear-wallet" class="link-btn" type="button">Clear wallet</button>
+    </details>
+
+    <section class="panel">
+      <h2>Where are you shopping?</h2>
+      <input id="merchant-input" class="search" list="merchant-list" type="search" placeholder="Type a store — e.g. Costco, Netflix, Shell, CVS…" autocomplete="off" />
+      <datalist id="merchant-list"></datalist>
+      <div id="merchant-result"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Best card by category</h2>
+      <p id="empty" class="empty hidden">Add the cards you own above and your recommendations will appear here.</p>
+      <p id="rotating-tip" class="tip hidden"></p>
+      <div id="cheatsheet"></div>
+      <button id="toggle-matrix" class="link-btn hidden" type="button">Show full comparison table</button>
+      <div id="matrix-wrap" class="hidden"></div>
+    </section>
+
+    <footer class="foot">
+      <p>Rates are hand-curated, last updated <span id="updated"></span>. Programs change and exclusions apply — always confirm with your card's issuer. Points cards (Sapphire, Amex Gold, etc.) aren't included yet.</p>
+      <p class="muted">Add or edit cards in <code>cards.js</code>.</p>
+    </footer>
+  </main>
+
+  <script src="cards.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
