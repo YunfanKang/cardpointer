@@ -47,6 +47,33 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
+/* ---------- "choose your category" cards (Custom Cash, BofA Customized, Venmo) ---------- */
+const CHOICE_KEY = "cardpointer.choices.v1";
+function getChoices() {
+  try {
+    const o = JSON.parse(localStorage.getItem(CHOICE_KEY));
+    return o && typeof o === "object" ? o : {};
+  } catch {
+    return {};
+  }
+}
+// Active bonus category(ies) for a choose-card: the user's pick, else a default
+// (the first eligible one) so it's never mysteriously stuck at the base rate.
+function getChoice(card) {
+  const elig = card.choose.categories;
+  const stored = getChoices()[card.id];
+  if (Array.isArray(stored)) {
+    const valid = stored.filter((k) => elig.includes(k));
+    if (valid.length) return valid;
+  }
+  return elig.slice(0, card.choose.count || 1);
+}
+function setChoice(cardId, keys) {
+  const o = getChoices();
+  o[cardId] = keys;
+  localStorage.setItem(CHOICE_KEY, JSON.stringify(o));
+}
+
 // Card payment network, for vendors that accept only some networks (e.g. Costco
 // in-store = Visa). Uses NETWORK_OVERRIDES, then issuer/name; null = unknown.
 function cardNetwork(card) {
@@ -81,6 +108,14 @@ function rateInfoFor(card, catKey) {
   let best = null;
   const fixed = card.rewards[catKey];
   if (fixed) best = { rate: fixed.rate, note: fixed.note || "", rotating: false, fallback: false };
+
+  // Choose-your-category cards: bonus rate only on the user's active category.
+  if (card.choose && card.choose.categories.includes(catKey) && getChoice(card).includes(catKey)) {
+    const r = card.choose.rate;
+    if (!best || r > best.rate) {
+      best = { rate: r, note: card.choose.note || "Your selected bonus category.", rotating: false, fallback: false };
+    }
+  }
 
   const rot = activeRotating(card);
   if (rot && rot.keys.includes(catKey)) {
@@ -162,20 +197,32 @@ function renderPicker(filter = "") {
         .map((c) => {
           const on = owned.has(c.id);
           const fee = c.annualFee ? `<span class="fee">$${c.annualFee}/yr</span>` : "";
+          const marks = `${c.points ? ' <span class="gem">💎</span>' : ""}${c.choose ? ' <span class="gem">⭐</span>' : ""}`;
           const chip = `<button class="chip ${on ? "on" : ""}" data-id="${c.id}" aria-pressed="${on}">
-            ${issuerBadge(c.issuer)}<span class="chip-name">${escapeHtml(c.name)}</span>${fee}${
-            c.points ? ' <span class="gem">💎</span>' : ""
-          }
+            ${issuerBadge(c.issuer)}<span class="chip-name">${escapeHtml(c.name)}</span>${fee}${marks}
           </button>`;
-          if (!c.points) return chip;
-          // Points card: attach an inline per-card value selector.
-          const v = getPointsValue(c);
-          const opts = PV_OPTIONS.map(
-            (x) => `<option value="${x}" ${x === v ? "selected" : ""}>${x}¢</option>`
-          ).join("");
-          return `<span class="chip-pv">${chip}
-            <label class="pv" title="What a ${escapeHtml(c.points)} point is worth to you on this card">💎 <select class="pv-select" data-card="${c.id}">${opts}</select></label>
-          </span>`;
+          const controls = [];
+          if (c.points) {
+            const v = getPointsValue(c);
+            const opts = PV_OPTIONS.map((x) => `<option value="${x}" ${x === v ? "selected" : ""}>${x}¢</option>`).join("");
+            controls.push(
+              `<label class="pv" title="What a ${escapeHtml(c.points)} point is worth to you on this card">💎 <select class="pv-select" data-card="${c.id}">${opts}</select></label>`
+            );
+          }
+          if (c.choose) {
+            const chosen = getChoice(c);
+            const opts = c.choose.categories
+              .map((k) => {
+                const cd = CATEGORIES.find((x) => x.key === k);
+                return `<option value="${k}" ${chosen.includes(k) ? "selected" : ""}>${escapeHtml(cd ? cd.label : k)}</option>`;
+              })
+              .join("");
+            controls.push(
+              `<label class="pv" title="Your ${c.choose.rate}% category this cycle">⭐ <select class="pick-select" data-card="${c.id}">${opts}</select></label>`
+            );
+          }
+          if (!controls.length) return chip;
+          return `<span class="chip-pv">${chip}${controls.join("")}</span>`;
         })
         .join("");
       // Folded by default; auto-open while searching so matches are visible.
@@ -475,9 +522,11 @@ function init() {
 
   // Per-card points-value selectors (change bubbles to #picker).
   document.getElementById("picker").addEventListener("change", (e) => {
-    const sel = e.target.closest(".pv-select");
-    if (!sel) return;
-    setPointsValue(sel.dataset.card, parseFloat(sel.value));
+    const pv = e.target.closest(".pv-select");
+    const pick = e.target.closest(".pick-select");
+    if (pv) setPointsValue(pv.dataset.card, parseFloat(pv.value));
+    else if (pick) setChoice(pick.dataset.card, [pick.value]);
+    else return;
     renderResults();
     refreshMerchant();
   });

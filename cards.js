@@ -206,11 +206,13 @@ const CARDS = [
   },
   {
     id: "citi-custom-cash", name: "Custom Cash", issuer: "Citi", annualFee: 0,
-    rewards: {
-      dining: { rate: 5 }, gas: { rate: 5 }, groceries: { rate: 5 }, transit: { rate: 5 },
-      streaming: { rate: 5 }, drugstores: { rate: 5 }, entertainment: { rate: 5 }, other: { rate: 1 },
+    rewards: { other: { rate: 1 } },
+    choose: {
+      rate: 5,
+      categories: ["dining", "gas", "groceries", "transit", "streaming", "drugstores", "entertainment"],
+      note: "Your active 5% category (up to $500/cycle, then 1%).",
     },
-    note: "5% applies ONLY to your single highest-spend eligible category each billing cycle, up to $500 (then 1%). It auto-follows your top category — you can't stack it.",
+    note: "Earns 5% on only ONE eligible category each billing cycle — your highest-spend one, up to $500 (then 1%). Set which below.",
   },
   {
     id: "costco-citi", name: "Costco Anywhere Visa", issuer: "Citi", annualFee: 0,
@@ -305,15 +307,13 @@ const CARDS = [
   /* ---------------- Bank of America ---------------- */
   {
     id: "boa-customized-cash", name: "Customized Cash Rewards", issuer: "Bank of America", annualFee: 0,
-    rewards: {
-      dining: { rate: 3, note: "Only if chosen as your 3% category." },
-      gas: { rate: 3, note: "Only if chosen as your 3% category." },
-      online: { rate: 3, note: "Only if chosen as your 3% category." },
-      travel: { rate: 3, note: "Only if chosen as your 3% category." },
-      drugstores: { rate: 3, note: "Only if chosen as your 3% category." },
-      groceries: { rate: 2 }, wholesale: { rate: 2 }, other: { rate: 1 },
+    rewards: { groceries: { rate: 2 }, wholesale: { rate: 2 }, other: { rate: 1 } },
+    choose: {
+      rate: 3,
+      categories: ["dining", "gas", "online", "travel", "drugstores"],
+      note: "Your chosen 3% category.",
     },
-    note: "Pick ONE 3% category; 2% at groceries & warehouse clubs. Bonus rates apply to the first $2,500/qtr (combined). Boosted up to 75% for Preferred Rewards members.",
+    note: "Pick ONE 3% category (below); also 2% at groceries & warehouse clubs. Bonus rates apply to the first $2,500/qtr combined. Boosted up to 75% for Preferred Rewards members.",
   },
   {
     id: "boa-unlimited-cash", name: "Unlimited Cash Rewards", issuer: "Bank of America", annualFee: 0,
@@ -387,11 +387,13 @@ const CARDS = [
   },
   {
     id: "venmo-card", name: "Venmo Credit Card", issuer: "Venmo", annualFee: 0,
-    rewards: {
-      dining: { rate: 3 }, groceries: { rate: 3 }, gas: { rate: 3 },
-      travel: { rate: 3 }, transit: { rate: 3 }, entertainment: { rate: 3 }, other: { rate: 1 },
+    rewards: { other: { rate: 1 } },
+    choose: {
+      rate: 3,
+      categories: ["dining", "groceries", "gas", "travel", "transit", "entertainment"],
+      note: "Your top spend category (auto).",
     },
-    note: "Issued by Synchrony. 3% auto-applies to your top spend category each month, 2% to your second, 1% on the rest — so only one of these is 3% at a time.",
+    note: "Issued by Synchrony. 3% auto-applies to your top spend category each month, 2% to the second, 1% else. Set your top category below.",
   },
   {
     id: "penfed-power-cash", name: "Power Cash Rewards", issuer: "PenFed", annualFee: 0,
