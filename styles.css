@@ -178,6 +178,34 @@ details[open] > summary .chev { transform: rotate(90deg); }
   cursor: pointer;
 }
 
+/* 💗 easter egg */
+.heart-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 9999; }
+.heart {
+  position: absolute;
+  bottom: -48px;
+  animation-name: floatUp;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(0.7); opacity: 0; }
+  12% { opacity: 1; }
+  100% { transform: translateY(-112vh) scale(1.25); opacity: 0; }
+}
+.merchant-card.egg {
+  text-align: center;
+  background: linear-gradient(135deg, #ff5e8a, #ff8fb1);
+  border: none;
+  padding: 28px 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.08s ease;
+}
+.merchant-card.egg:active { transform: scale(0.98); }
+.egg-msg { font-size: 1.5rem; font-weight: 800; color: #fff; }
+.egg-sub { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: rgba(255, 255, 255, 0.88); }
+
 .merchant-card {
   background: var(--panel-2);
   border: 1px solid var(--border);

@@ -300,6 +300,33 @@ function renderMatrix(owned) {
 }
 
 /* ---------- merchant search ---------- */
+// 💗 A little private easter egg for the "Where are you shopping?" box: type one of
+// these names to reveal a message + floating hearts. (Heads up: client-side code is
+// public in the repo, so it's a sweet surprise, not a true secret.)
+const EASTER_EGGS = {
+  yunfan: { message: "Free for Xiaolin 💗", hearts: true },
+  xiaolin: { message: "Ask Yunfan for a discount 😉", hearts: true },
+};
+const EGG_SIGNATURE = "made by Yunfan with 💗";
+let lastEggShown = null;
+function floatHearts(n = 26) {
+  const layer = document.createElement("div");
+  layer.className = "heart-layer";
+  const set = ["💗", "💕", "❤️", "💖", "💞"];
+  for (let i = 0; i < n; i++) {
+    const h = document.createElement("span");
+    h.className = "heart";
+    h.textContent = set[i % set.length];
+    h.style.left = Math.random() * 100 + "vw";
+    h.style.fontSize = 18 + Math.random() * 30 + "px";
+    h.style.animationDelay = Math.random() * 0.9 + "s";
+    h.style.animationDuration = 2.6 + Math.random() * 2 + "s";
+    layer.appendChild(h);
+  }
+  document.body.appendChild(layer);
+  setTimeout(() => layer.remove(), 6500);
+}
+
 // Best matching merchant for a free-text query, or null.
 function findMerchant(query) {
   const q = (query || "").trim().toLowerCase();
@@ -329,8 +356,21 @@ function renderMerchantResult(query) {
   const q = (query || "").trim();
   if (!q) {
     box.innerHTML = "";
+    lastEggShown = null;
     return;
   }
+  // 💗 easter egg
+  const egg = EASTER_EGGS[q.toLowerCase()];
+  if (egg) {
+    box.innerHTML = `<div class="merchant-card egg" title="tap for more 💗">
+      <div class="egg-msg">${escapeHtml(egg.message)}</div>
+      <div class="egg-sub">${escapeHtml(EGG_SIGNATURE)}</div>
+    </div>`;
+    if (egg.hearts && lastEggShown !== q.toLowerCase()) floatHearts();
+    lastEggShown = q.toLowerCase();
+    return;
+  }
+  lastEggShown = null;
   const m = findMerchant(q);
   if (!m) {
     box.innerHTML = `<div class="merchant-card unknown">“${escapeHtml(
@@ -469,6 +509,10 @@ function init() {
     (m) => `<option value="${escapeHtml(m.name)}"></option>`
   ).join("");
   mInput.addEventListener("input", () => renderMerchantResult(mInput.value));
+  // 💗 tap the easter-egg card for another burst of hearts
+  document.getElementById("merchant-result").addEventListener("click", (e) => {
+    if (e.target.closest(".merchant-card.egg")) floatHearts();
+  });
 
   renderPicker();
   renderResults();
