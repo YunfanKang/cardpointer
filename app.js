@@ -47,6 +47,21 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
+// Card payment network, for vendors that accept only some networks (e.g. Costco
+// in-store = Visa). Uses NETWORK_OVERRIDES, then issuer/name; null = unknown.
+function cardNetwork(card) {
+  if (typeof NETWORK_OVERRIDES !== "undefined" && NETWORK_OVERRIDES[card.id]) {
+    return NETWORK_OVERRIDES[card.id];
+  }
+  if (card.issuer === "American Express") return "Amex";
+  if (card.issuer === "Discover") return "Discover";
+  if (card.issuer === "Apple") return "Mastercard";
+  const n = card.name.toLowerCase();
+  if (n.includes("visa")) return "Visa";
+  if (n.includes("mastercard")) return "Mastercard";
+  return null;
+}
+
 /* ---------- reward lookup ---------- */
 // Current calendar quarter, e.g. "2026-Q2".
 function currentQuarter(d = new Date()) {
@@ -324,34 +339,67 @@ function renderMerchantResult(query) {
     return;
   }
   const cat = CATEGORIES.find((c) => c.key === m.category);
+  const head = `<div class="merchant-top"><span class="merchant-name">🛍️ ${escapeHtml(
+    m.name
+  )}</span><span class="muted">${cat.icon} ${escapeHtml(cat.label)}</span></div>`;
   const wallet = ownedCards();
   if (!wallet.length) {
-    box.innerHTML = `<div class="merchant-card"><div class="merchant-top"><span class="merchant-name">🛍️ ${escapeHtml(
-      m.name
-    )}</span><span class="muted">${cat.icon} ${escapeHtml(
-      cat.label
-    )}</span></div><div class="muted">Add cards to your wallet above to see which one to use.</div></div>`;
+    box.innerHTML = `<div class="merchant-card">${head}<div class="muted">Add cards to your wallet above to see which one to use.</div></div>`;
     return;
   }
-  const rank = rankForCategory(m.category, wallet);
+
+  // Some vendors accept only certain card networks (e.g. Costco in-store = Visa).
+  // Unknown-network cards are kept (with a "confirm" note); known-mismatch ones drop.
+  const accepts = Array.isArray(m.networks) && m.networks.length ? m.networks : null;
+  let usable = wallet;
+  let excluded = [];
+  if (accepts) {
+    usable = wallet.filter((c) => {
+      const net = cardNetwork(c);
+      return net === null || accepts.includes(net);
+    });
+    excluded = wallet.filter((c) => {
+      const net = cardNetwork(c);
+      return net !== null && !accepts.includes(net);
+    });
+  }
+  const warn = accepts
+    ? `<div class="merchant-warn">⚠️ Accepts ${accepts.join("/")} only${
+        excluded.length
+          ? ` — won't take your ${excluded
+              .slice(0, 3)
+              .map((c) => escapeHtml(c.name))
+              .join(", ")}${excluded.length > 3 ? ` +${excluded.length - 3} more` : ""}`
+          : ""
+      }.</div>`
+    : "";
+
+  if (accepts && !usable.length) {
+    box.innerHTML = `<div class="merchant-card">${head}${warn}<div class="muted">None of your cards work here.</div>${
+      m.note ? `<div class="merchant-note">ℹ️ ${escapeHtml(m.note)}</div>` : ""
+    }</div>`;
+    return;
+  }
+
+  const rank = rankForCategory(m.category, usable);
   const top = rank[0];
   const tie = rank[1] && rank[1].rate === top.rate;
+  const topUnknownNet = accepts && cardNetwork(top.card) === null;
   const others = rank
     .slice(1, 3)
     .map((e) => `${issuerBadge(e.card.issuer)} ${escapeHtml(e.card.name)} ${fmtRate(e.rate)}`)
     .join(" · ");
 
   box.innerHTML = `<div class="merchant-card">
-    <div class="merchant-top">
-      <span class="merchant-name">🛍️ ${escapeHtml(m.name)}</span>
-      <span class="muted">${cat.icon} ${escapeHtml(cat.label)}</span>
-    </div>
+    ${head}
+    ${warn}
     <div class="merchant-best">
       <span>Use ${issuerBadge(top.card.issuer)} <strong>${escapeHtml(top.card.name)}</strong>${
     tie ? " (tie)" : ""
   }</span>
       <span class="badge">${fmtRate(top.rate)}${top.rotating ? " 🔄" : ""}${top.points ? " 💎" : ""}</span>
     </div>
+    ${topUnknownNet ? `<div class="merchant-note">Confirm this card is a ${accepts.join("/")}.</div>` : ""}
     ${top.points ? `<div class="merchant-note">${top.mult}× ${escapeHtml(top.points)} @ ${top.cents}¢</div>` : ""}
     ${top.note ? `<div class="merchant-note">${escapeHtml(top.note)}</div>` : ""}
     ${m.note ? `<div class="merchant-note">ℹ️ ${escapeHtml(m.note)}</div>` : ""}

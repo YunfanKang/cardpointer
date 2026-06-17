@@ -60,6 +60,50 @@ const POINTS_DEFAULTS = {
   "IHG One Rewards": 0.5,
 };
 
+// Card payment network, for vendors that accept only some networks (e.g. Costco).
+// Amex/Discover/Apple and "...Visa"/"...Mastercard" names are detected automatically;
+// this map covers the rest. Best-effort — some products ship on multiple networks,
+// so edit to match your actual card.
+const NETWORK_OVERRIDES = {
+  "chase-freedom-flex": "Mastercard",
+  "chase-freedom-unlimited": "Visa",
+  "chase-freedom-rise": "Visa",
+  "chase-sapphire-preferred": "Visa",
+  "chase-sapphire-reserve": "Visa",
+  "chase-ink-cash": "Mastercard",
+  "chase-ink-unlimited": "Visa",
+  "chase-ihg-premier": "Mastercard",
+  "chase-united-gateway": "Visa",
+  "chase-united-explorer": "Visa",
+  "chase-united-quest": "Visa",
+  "chase-united-club": "Visa",
+  "chase-southwest-priority": "Visa",
+  "chase-hyatt": "Visa",
+  "chase-marriott-boundless": "Visa",
+  "citi-double-cash": "Mastercard",
+  "citi-custom-cash": "Mastercard",
+  "citi-strata-premier": "Mastercard",
+  "citi-strata": "Mastercard",
+  "citi-rewards-plus": "Mastercard",
+  "citi-aa-platinum": "Mastercard",
+  "capone-venture": "Visa",
+  "capone-venture-x": "Visa",
+  "wf-active-cash": "Visa",
+  "wf-autograph": "Visa",
+  "wf-autograph-journey": "Visa",
+  "usbank-cashplus": "Visa",
+  "usbank-altitude-go": "Visa",
+  "usbank-altitude-connect": "Visa",
+  "boa-premium-rewards": "Visa",
+  "boa-travel-rewards": "Visa",
+  "sofi-credit": "Mastercard",
+  "venmo-card": "Visa",
+  "robinhood-gold": "Visa",
+  "penfed-power-cash": "Visa",
+  "alliant-cashback": "Visa",
+  "creditone-amex": "Amex",
+};
+
 const CATEGORIES = [
   { key: "dining",        label: "Dining / Restaurants", icon: "🍽️" },
   { key: "groceries",     label: "Groceries",            icon: "🛒" },
@@ -480,11 +524,32 @@ const CARDS = [
     note: "Business card. Flat 1.5x Ultimate Rewards. No AF.",
   },
   {
+    id: "chase-united-gateway", name: "United Gateway", issuer: "Chase", annualFee: 0,
+    points: "United MileagePlus",
+    rewards: { gas: { rate: 2 }, transit: { rate: 2, note: "Local transit & commuting (incl. rideshare, parking, tolls)." }, other: { rate: 1 } },
+    aka: ["united", "gateway", "mileageplus"],
+    note: "No-AF United cobrand. 2x United, 2x gas, 2x transit/commuting, 1x else. Earns MileagePlus miles.",
+  },
+  {
     id: "chase-united-explorer", name: "United Explorer", issuer: "Chase", annualFee: 95,
     points: "United MileagePlus",
-    rewards: { travel: { rate: 2, note: "United & hotels." }, dining: { rate: 2 }, other: { rate: 1 } },
-    aka: ["united", "mileageplus"],
-    note: "$95 AF (waived first year). United miles. Free checked bag + lounge passes.",
+    rewards: { travel: { rate: 2, note: "United & hotels booked direct." }, dining: { rate: 2 }, other: { rate: 1 } },
+    aka: ["united", "explorer", "mileageplus"],
+    note: "$95 AF (waived first year). 2x United, dining & hotels. Free checked bag + 2 lounge passes/yr. MileagePlus miles.",
+  },
+  {
+    id: "chase-united-quest", name: "United Quest", issuer: "Chase", annualFee: 350,
+    points: "United MileagePlus",
+    rewards: { travel: { rate: 2, note: "3x on United; 2x other travel." }, dining: { rate: 2 }, streaming: { rate: 2 }, other: { rate: 1 } },
+    aka: ["united", "quest", "mileageplus"],
+    note: "$350 AF. 3x United, 2x other travel/dining/streaming, 1x else. Annual United & rideshare credits + anniversary miles. MileagePlus miles.",
+  },
+  {
+    id: "chase-united-club", name: "United Club Infinite", issuer: "Chase", annualFee: 525,
+    points: "United MileagePlus",
+    rewards: { travel: { rate: 2, note: "4x on United; 2x other travel." }, dining: { rate: 2 }, other: { rate: 1 } },
+    aka: ["united", "club", "infinite", "mileageplus"],
+    note: "$525 AF. 4x United, 2x other travel & dining, 1x else. Includes United Club lounge membership. MileagePlus miles.",
   },
   {
     id: "chase-hyatt", name: "World of Hyatt", issuer: "Chase", annualFee: 95,
@@ -606,7 +671,7 @@ const MERCHANTS = [
   { name: "Stop & Shop", category: "groceries", aliases: ["stop and shop"] },
   { name: "Harris Teeter", category: "groceries" },
   // Warehouse clubs
-  { name: "Costco", category: "wholesale", note: "Costco in-store takes Visa only; the Costco Anywhere Visa earns 2% there." },
+  { name: "Costco", category: "wholesale", networks: ["Visa"], note: "In-store accepts Visa only (Costco.com takes more). The Costco Anywhere Visa earns 2% there." },
   { name: "Sam's Club", category: "wholesale", aliases: ["sams club"] },
   { name: "BJ's Wholesale", category: "wholesale", aliases: ["bjs", "bj's"] },
   // Superstores (usually NOT grocery bonus eligible)

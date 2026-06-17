@@ -204,6 +204,15 @@ details[open] > summary .chev { transform: rotate(90deg); }
 }
 .merchant-best .badge { margin-left: auto; font-size: 1rem; }
 .merchant-best .logo { vertical-align: middle; margin-right: 2px; }
+.merchant-warn {
+  background: rgba(245, 179, 1, 0.14);
+  border: 1px solid rgba(245, 179, 1, 0.45);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 11px;
+  font-size: 0.85rem;
+  margin-bottom: 10px;
+}
 .merchant-note { font-size: 0.84rem; color: var(--muted); margin-top: 8px; }
 .merchant-others { font-size: 0.86rem; color: var(--muted); margin-top: 8px; }
 .merchant-others .logo { vertical-align: middle; }
