@@ -1,0 +1,40 @@
+name: Rotating categories reminder
+
+# Opens an issue when a rotating 5% card (Freedom Flex, Discover it, ...) is
+# missing the upcoming quarter's categories in cards.js.
+on:
+  schedule:
+    # Mid-month before each quarter starts, then again on day 1 as a follow-up.
+    - cron: "0 14 15 3,6,9,12 *"
+    - cron: "0 14 1 1,4,7,10 *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - id: check
+        run: node .github/scripts/check-rotating.mjs
+
+      - name: Open issue (skip if one is already open)
+        if: steps.check.outputs.missing != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: "Add ${{ steps.check.outputs.quarter }} rotating 5% categories"
+        run: |
+          existing=$(gh issue list --state open --search "\"$TITLE\" in:title" --json number --jq 'length')
+          if [ "$existing" = "0" ]; then
+            gh issue create --title "$TITLE" --body-file issue-body.md
+          else
+            echo "Issue already open: $TITLE"
+          fi

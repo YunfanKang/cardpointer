@@ -17,7 +17,7 @@
  * apply — always confirm with the issuer.
  */
 
-const DATA_UPDATED = "January 2026";
+const DATA_UPDATED = "October 2026";
 
 // Issuer → brand color + short monogram for the logo badge.
 const ISSUERS = {
@@ -174,7 +174,7 @@ const CARDS = [
         "2026-Q1": { keys: ["dining"], label: "Dining, Norwegian Cruise Line, American Heart Association" },
         "2026-Q2": { keys: ["online"], label: "Amazon, Whole Foods Market, Chase Travel, Feeding America" },
         "2026-Q3": { keys: ["gas", "transit", "entertainment"], label: "Gas & EV charging, public transit, select live entertainment, United Way" },
-        // Q4 2026: not announced yet — add it here when Chase publishes it.
+        "2026-Q4": { keys: ["groceries", "dining"], label: "Grocery stores (excl. Walmart & Target), dining, American Red Cross" },
       },
     },
     note: "Also 5% on travel booked through Chase Travel.",
@@ -286,7 +286,7 @@ const CARDS = [
         "2026-Q1": { keys: ["groceries", "wholesale", "streaming"], label: "Grocery stores, wholesale clubs, select streaming" },
         "2026-Q2": { keys: ["dining", "home"], label: "Restaurants & home improvement stores" },
         "2026-Q3": { keys: ["gas", "transit", "drugstores"], label: "Gas & EV charging, public transit, flights, drugstores" },
-        // Q4 2026: not announced yet — add it here when Discover publishes it.
+        "2026-Q4": { keys: ["entertainment", "dining"], label: "Restaurants, entertainment (movies, concerts, live sports), utilities" },
       },
     },
     note: "New cardholders: Discover matches all cash back earned in your first year.",
