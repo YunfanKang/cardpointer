@@ -67,6 +67,39 @@ Issuers announce categories ~quarterly, so add each new quarter (`YYYY-Qn`) when
 published. If the current quarter isn't in the calendar, the app says so and prompts
 you to update it.
 
+### Detailed categories
+
+Fine-grained categories (fast food, EV charging, rideshare, airfare, hotels, car
+rental, movie theaters, phone plans, internet/TV, utilities, rent, department /
+electronics / furniture / clothing / sporting-goods stores, beauty, pets) have a
+`parent` in `CATEGORIES`. A card's parent bonus also applies to the child (fast food
+earns your dining rate) unless the card sets its own rate on the child. The category
+list only shows a child row when one of your cards earns more there than in the parent.
+
+### Store-specific bonuses
+
+Bonuses that only apply at certain stores go in a card's `merchants` map, keyed by a
+`MERCHANTS` name — e.g. Apple Card's 3% partners, Prime Visa at Amazon/Whole Foods,
+cobrand hotel/airline cards:
+
+```js
+merchants: { "Walgreens": { rate: 3, note: "3% Daily Cash with Apple Pay." } },
+```
+
+A rotating quarter can also list stores: `{ keys: [], merchants: ["Amazon"], label: "…" }`.
+
+### Pick-your-category cards
+
+`choose` is one slot or an array of slots. `count` = how many picks the slot allows,
+`labels` = issuer wording in the dropdown, `covers` = extra categories a pick includes:
+
+```js
+choose: [
+  { rate: 5, count: 2, categories: ["phone", "utilities", "internet"], covers: { internet: ["streaming"] } },
+  { rate: 2, categories: ["gas", "groceries", "dining"] },
+],
+```
+
 ### Merchant search
 
 The "Where are you shopping?" box maps a store to a category and recommends the best
@@ -90,9 +123,8 @@ deploy from branch). Netlify and Cloudflare Pages also host static folders for f
 - Rotating 5% categories are applied for the current quarter from each card's
   `calendar`, but the app does **not** track your spend, so it can't enforce caps
   ($1,500/qtr) or confirm you've activated them — it just reminds you.
-- "Choose your category" cards (BofA Customized, Citi Custom Cash, Venmo) list their
-  eligible bonus categories at the bonus rate with a note; you can only get the bonus
-  on one at a time.
+- "Choose your category" cards (BofA Customized, Citi Custom Cash, U.S. Bank Cash+,
+  PayPal Debit, Venmo) get a ⭐ dropdown in the wallet — set it to your current pick.
 - **Targeted offers** (Amex Offers, Chase Offers) are *not* included — they're
   personalized per account with no public data source. They'd need a separate manual
   tracker (merchant + reward + expiry), not the category model.

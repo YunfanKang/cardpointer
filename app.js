@@ -47,8 +47,18 @@ function round2(n) {
   return Math.round(n * 100) / 100;
 }
 
-/* ---------- "choose your category" cards (Custom Cash, BofA Customized, Venmo) ---------- */
+/* ---------- "choose your category" cards (Custom Cash, BofA Customized, Cash+, …) ---------- */
+// `card.choose` is one pick slot or an array of slots (Cash+ has a 5% slot with two
+// picks and a separate 2% slot). Slot 0 is stored under the card id, slot i under
+// "<id>#i", so older saved picks keep working.
 const CHOICE_KEY = "cardpointer.choices.v1";
+function chooseSlots(card) {
+  if (!card.choose) return [];
+  return Array.isArray(card.choose) ? card.choose : [card.choose];
+}
+function slotKey(cardId, i) {
+  return i ? `${cardId}#${i}` : cardId;
+}
 function getChoices() {
   try {
     const o = JSON.parse(localStorage.getItem(CHOICE_KEY));
@@ -57,21 +67,35 @@ function getChoices() {
     return {};
   }
 }
-// Active bonus category(ies) for a choose-card: the user's pick, else a default
-// (the first eligible one) so it's never mysteriously stuck at the base rate.
-function getChoice(card) {
-  const elig = card.choose.categories;
-  const stored = getChoices()[card.id];
-  if (Array.isArray(stored)) {
-    const valid = stored.filter((k) => elig.includes(k));
-    if (valid.length) return valid;
+// Active bonus category(ies) for a pick slot: the user's picks, topped up with the
+// first eligible ones so a slot is never mysteriously stuck at the base rate.
+function getChoice(card, i = 0) {
+  const slot = chooseSlots(card)[i];
+  const elig = slot.categories;
+  const n = slot.count || 1;
+  const stored = getChoices()[slotKey(card.id, i)];
+  const picked = Array.isArray(stored) ? [...new Set(stored.filter((k) => elig.includes(k)))] : [];
+  for (const k of elig) {
+    if (picked.length >= n) break;
+    if (!picked.includes(k)) picked.push(k);
   }
-  return elig.slice(0, card.choose.count || 1);
+  return picked.slice(0, n);
 }
-function setChoice(cardId, keys) {
+function setChoice(key, keys) {
   const o = getChoices();
-  o[cardId] = keys;
+  o[key] = keys;
   localStorage.setItem(CHOICE_KEY, JSON.stringify(o));
+}
+// Categories boosted by slot i: the picks, plus anything a pick `covers` (e.g. BofA's
+// "online shopping" pick also covers phone, internet & streaming bills).
+function slotBoosts(card, i) {
+  const slot = chooseSlots(card)[i];
+  const out = new Set();
+  for (const k of getChoice(card, i)) {
+    out.add(k);
+    for (const extra of (slot.covers && slot.covers[k]) || []) out.add(extra);
+  }
+  return out;
 }
 
 /* ---------- user-customizable category order ---------- */
@@ -113,7 +137,9 @@ function renderReorderList(box) {
     .map(
       (cat) => `<div class="reorder-row" data-key="${cat.key}">
         <span class="reorder-handle" title="Drag to reorder">⠿</span>
-        <span class="ro-label">${cat.icon} ${escapeHtml(cat.label)}</span>
+        <span class="ro-label">${cat.icon} ${escapeHtml(cat.label)}${
+          cat.parent ? ` <span class="muted small">— shown when it beats ${escapeHtml(CAT_BY_KEY[cat.parent].label)}</span>` : ""
+        }</span>
         <span class="ro-btns"><button class="ro-up" type="button" aria-label="Move up">↑</button><button class="ro-down" type="button" aria-label="Move down">↓</button></span>
       </div>`
     )
@@ -137,6 +163,27 @@ function cardNetwork(card) {
   return null;
 }
 
+/* ---------- category tree ---------- */
+// Fine-grained categories have a `parent` (fast food → dining, EV charging → gas…).
+// A card's bonus on the parent applies to the child unless the child has its own rate.
+const CAT_BY_KEY = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
+function catChain(key) {
+  const out = [];
+  for (let k = key; k && k !== "other" && !out.includes(k); k = CAT_BY_KEY[k] && CAT_BY_KEY[k].parent) {
+    out.push(k);
+  }
+  return out;
+}
+// Categories to list for this wallet: every top-level one, plus fine-grained ones
+// only when some card you own earns more there than in the parent category.
+function visibleCategories(owned) {
+  return orderedCategories().filter((cat) => {
+    if (!cat.parent) return true;
+    const top = rankForCategory(cat.key, owned)[0].rate;
+    return cat.noBase ? top > 0 : top > rankForCategory(cat.parent, owned)[0].rate;
+  });
+}
+
 /* ---------- reward lookup ---------- */
 // Current calendar quarter, e.g. "2026-Q2".
 function currentQuarter(d = new Date()) {
@@ -148,30 +195,37 @@ function activeRotating(card) {
   return card.rotating.calendar[currentQuarter()] || null;
 }
 
-// Rate a card earns in a category: the better of its fixed bonus, an active
-// rotating 5% (this quarter only), or its base ("other") rate. For points cards
-// the stored rate is a multiplier (points/$), converted to an effective % using
-// the user's chosen per-point value.
-function rateInfoFor(card, catKey) {
+// Rate a card earns in a category (and optionally at a specific merchant): the best
+// of its fixed bonus, a chosen-category bonus, an active rotating 5% (this quarter
+// only) or a merchant-specific bonus — checked on the category and its parents —
+// else its base ("other") rate. For points cards the stored rate is a multiplier
+// (points/$), converted to an effective % using the user's per-point value.
+function rateInfoFor(card, catKey, merchant = null) {
   let best = null;
-  const fixed = card.rewards[catKey];
-  if (fixed) best = { rate: fixed.rate, note: fixed.note || "", rotating: false, fallback: false };
-
-  // Choose-your-category cards: bonus rate only on the user's active category.
-  if (card.choose && card.choose.categories.includes(catKey) && getChoice(card).includes(catKey)) {
-    const r = card.choose.rate;
-    if (!best || r > best.rate) {
-      best = { rate: r, note: card.choose.note || "Your selected bonus category.", rotating: false, fallback: false };
-    }
-  }
-
+  const offer = (rate, note, rotating = false) => {
+    if (!best || rate > best.rate) best = { rate, note, rotating, fallback: false };
+  };
   const rot = activeRotating(card);
-  if (rot && rot.keys.includes(catKey)) {
-    const r = card.rotating.rate ?? 5;
-    if (!best || r > best.rate) {
-      const cap = card.rotating.cap ? ` (${card.rotating.cap})` : "";
-      best = { rate: r, note: `Rotating 5% this quarter — activate it${cap}.`, rotating: true, fallback: false };
-    }
+  const rotOffer = () => {
+    const cap = card.rotating.cap ? ` (${card.rotating.cap})` : "";
+    offer(card.rotating.rate ?? 5, `Rotating 5% this quarter — activate it${cap}.`, true);
+  };
+
+  for (const k of catChain(catKey)) {
+    const fixed = card.rewards[k];
+    if (fixed) offer(fixed.rate, fixed.note || "");
+    chooseSlots(card).forEach((slot, i) => {
+      if (slotBoosts(card, i).has(k)) offer(slot.rate, slot.note || "Your selected bonus category.");
+    });
+    if (rot && rot.keys.includes(k)) rotOffer();
+  }
+  if (merchant) {
+    const m = card.merchants && card.merchants[merchant.name];
+    if (m) offer(m.rate, m.note || `Bonus rate at ${merchant.name}.`);
+    if (rot && rot.merchants && rot.merchants.includes(merchant.name)) rotOffer();
+  }
+  if (!best && CAT_BY_KEY[catKey] && CAT_BY_KEY[catKey].noBase) {
+    best = { rate: 0, note: "No rewards here — paying by card usually costs a ~3% fee.", rotating: false, fallback: true };
   }
   if (!best) {
     const base = card.rewards.other || { rate: 0 };
@@ -183,15 +237,15 @@ function rateInfoFor(card, catKey) {
   }
   return best;
 }
-function rankForCategory(catKey, cards) {
+function rankForCategory(catKey, cards, merchant = null) {
   return cards
-    .map((card) => ({ card, ...rateInfoFor(card, catKey) }))
+    .map((card) => ({ card, ...rateInfoFor(card, catKey, merchant) }))
     .sort((a, b) => b.rate - a.rate || a.card.name.localeCompare(b.card.name));
 }
 
 /* ---------- formatting helpers ---------- */
 function fmtRate(r) {
-  return `${Number.isInteger(r) ? r : r.toFixed(1)}%`;
+  return `${Number(r.toFixed(2))}%`;
 }
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => (
@@ -245,7 +299,7 @@ function renderPicker(filter = "") {
         .map((c) => {
           const on = owned.has(c.id);
           const fee = c.annualFee ? `<span class="fee">$${c.annualFee}/yr</span>` : "";
-          const marks = `${c.points ? ' <span class="gem">💎</span>' : ""}${c.choose ? ' <span class="gem">⭐</span>' : ""}`;
+          const marks = `${c.points ? ' <span class="gem">💎</span>' : ""}${c.choose ? ' <span class="gem">⭐</span>' : ""}${c.debit ? ' <span class="fee">debit</span>' : ""}`;
           const chip = `<button class="chip ${on ? "on" : ""}" data-id="${c.id}" aria-pressed="${on}">
             ${issuerBadge(c.issuer)}<span class="chip-name">${escapeHtml(c.name)}</span>${fee}${marks}
           </button>`;
@@ -257,18 +311,19 @@ function renderPicker(filter = "") {
               `<label class="pv" title="What a ${escapeHtml(c.points)} point is worth to you on this card">💎 <select class="pv-select" data-card="${c.id}">${opts}</select></label>`
             );
           }
-          if (c.choose) {
-            const chosen = getChoice(c);
-            const opts = c.choose.categories
-              .map((k) => {
-                const cd = CATEGORIES.find((x) => x.key === k);
-                return `<option value="${k}" ${chosen.includes(k) ? "selected" : ""}>${escapeHtml(cd ? cd.label : k)}</option>`;
-              })
-              .join("");
-            controls.push(
-              `<label class="pv" title="Your ${c.choose.rate}% category this cycle">⭐ <select class="pick-select" data-card="${c.id}">${opts}</select></label>`
-            );
-          }
+          chooseSlots(c).forEach((slot, i) => {
+            getChoice(c, i).forEach((chosen) => {
+              const opts = slot.categories
+                .map((k) => {
+                  const label = (slot.labels && slot.labels[k]) || (CAT_BY_KEY[k] ? CAT_BY_KEY[k].label : k);
+                  return `<option value="${k}" ${k === chosen ? "selected" : ""}>${escapeHtml(label)}</option>`;
+                })
+                .join("");
+              controls.push(
+                `<label class="pv" title="Your ${slot.rate}% pick">⭐${slot.rate}% <select class="pick-select" data-card="${c.id}" data-slot="${i}">${opts}</select></label>`
+              );
+            });
+          });
           if (!controls.length) return chip;
           return `<span class="chip-pv">${chip}${controls.join("")}</span>`;
         })
@@ -350,7 +405,7 @@ function renderResults() {
   }
 
   // "Best card per category" list.
-  cheat.innerHTML = orderedCategories().map((cat) => {
+  cheat.innerHTML = visibleCategories(owned).map((cat) => {
     const rank = rankForCategory(cat.key, owned);
     const top = rank[0];
     const tie = rank[1] && rank[1].rate === top.rate;
@@ -386,7 +441,7 @@ function renderMatrix(owned) {
     .map((c) => `<th>${issuerBadge(c.issuer)}<br>${escapeHtml(c.name)}</th>`)
     .join("")}</tr>`;
 
-  const body = orderedCategories().map((cat) => {
+  const body = visibleCategories(owned).map((cat) => {
     const cells = owned.map((c) => rateInfoFor(c, cat.key));
     const max = Math.max(...cells.map((x) => x.rate));
     const tds = cells
@@ -401,7 +456,7 @@ function renderMatrix(owned) {
   }).join("");
 
   wrap.innerHTML = `<table class="matrix"><thead>${head}</thead><tbody>${body}</tbody></table>
-    <p class="muted small">Highlighted = best card you own for that row. Faded cells use the card's base rate.</p>`;
+    <p class="muted small">Highlighted = best card you own for that row. Faded cells use the card's base rate. Detailed categories (fast food, phone bills…) appear only when one of your cards earns extra there.</p>`;
 }
 
 /* ---------- merchant search ---------- */
@@ -526,7 +581,7 @@ function renderMerchantResult(query) {
     return;
   }
 
-  const rank = rankForCategory(m.category, usable);
+  const rank = rankForCategory(m.category, usable, m);
   const top = rank[0];
   const tie = rank[1] && rank[1].rate === top.rate;
   const topUnknownNet = accepts && cardNetwork(top.card) === null;
@@ -583,7 +638,16 @@ function init() {
     const pv = e.target.closest(".pv-select");
     const pick = e.target.closest(".pick-select");
     if (pv) setPointsValue(pv.dataset.card, parseFloat(pv.value));
-    else if (pick) setChoice(pick.dataset.card, [pick.value]);
+    else if (pick) {
+      const sel = `.pick-select[data-card="${pick.dataset.card}"][data-slot="${pick.dataset.slot}"]`;
+      const keys = [...document.querySelectorAll(sel)].map((el) => el.value);
+      const slot = Number(pick.dataset.slot);
+      setChoice(slotKey(pick.dataset.card, slot), keys);
+      // Picks within a slot must differ; show what was actually saved.
+      const card = CARDS.find((c) => c.id === pick.dataset.card);
+      const saved = getChoice(card, slot);
+      document.querySelectorAll(sel).forEach((el, j) => (el.value = saved[j]));
+    }
     else return;
     renderResults();
     refreshMerchant();

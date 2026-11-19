@@ -1,6 +1,6 @@
 /* CardPointer service worker — cache the app shell for offline use.
    Bump CACHE when you change any cached file to force an update. */
-const CACHE = "cardpointer-v2";
+const CACHE = "cardpointer-v3";
 const ASSETS = [
   "./",
   "./index.html",

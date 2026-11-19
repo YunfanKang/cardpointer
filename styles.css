@@ -125,7 +125,7 @@ details[open] > summary .chev { transform: rotate(90deg); }
 .issuer-head .logo { width: 32px; height: 21px; font-size: 0.66rem; }
 .cat-winner .logo, .row-card .logo { vertical-align: middle; margin-right: 2px; }
 
-.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px; }
 .chip {
   display: inline-flex;
   align-items: center;
