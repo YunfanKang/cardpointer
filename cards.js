@@ -196,7 +196,8 @@ const CARDS = [
     merchants: { "Lyft": { rate: 2, note: "2% on Lyft rides (Chase × Lyft partnership)." } },
     rotating: {
       rate: 5,
-      cap: "up to $1,500/qtr, then 1%; activation required",
+      stacks: true, // the +4% quarterly bonus stacks on the 3% dining/drugstore rate (= 7%)
+      cap: "first $1,500/qtr combined; activation required",
       // `keys` are app categories boosted in recommendations; `label` is the full
       // issuer wording (incl. merchant/charity items that don't map to a category).
       calendar: {

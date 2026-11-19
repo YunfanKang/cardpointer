@@ -206,23 +206,33 @@ function rateInfoFor(card, catKey, merchant = null) {
     if (!best || rate > best.rate) best = { rate, note, rotating, fallback: false };
   };
   const rot = activeRotating(card);
-  const rotOffer = () => {
+  const base = (card.rewards.other || { rate: 0 }).rate;
+  const chain = catChain(catKey);
+  // Chase's quarterly 5% is "+4% on top of the base 1%", so on a card with `stacks`
+  // it adds to an existing bonus (Freedom Flex dining 3% + 4% = 7%).
+  const fixedTop = Math.max(base, ...chain.map((k) => (card.rewards[k] ? card.rewards[k].rate : 0)));
+  const rotOffer = (onCategory) => {
+    const r = card.rotating.rate ?? 5;
     const cap = card.rotating.cap ? ` (${card.rotating.cap})` : "";
-    offer(card.rotating.rate ?? 5, `Rotating 5% this quarter — activate it${cap}.`, true);
+    if (card.rotating.stacks && onCategory && fixedTop > base) {
+      offer(fixedTop + r - base, `${fixedTop}% + ${r - base}% rotating bonus this quarter — activate it${cap}.`, true);
+    } else {
+      offer(r, `Rotating 5% this quarter — activate it${cap}.`, true);
+    }
   };
 
-  for (const k of catChain(catKey)) {
+  for (const k of chain) {
     const fixed = card.rewards[k];
     if (fixed) offer(fixed.rate, fixed.note || "");
     chooseSlots(card).forEach((slot, i) => {
       if (slotBoosts(card, i).has(k)) offer(slot.rate, slot.note || "Your selected bonus category.");
     });
-    if (rot && rot.keys.includes(k)) rotOffer();
+    if (rot && rot.keys.includes(k)) rotOffer(true);
   }
   if (merchant) {
     const m = card.merchants && card.merchants[merchant.name];
     if (m) offer(m.rate, m.note || `Bonus rate at ${merchant.name}.`);
-    if (rot && rot.merchants && rot.merchants.includes(merchant.name)) rotOffer();
+    if (rot && rot.merchants && rot.merchants.includes(merchant.name)) rotOffer(false);
   }
   if (!best && CAT_BY_KEY[catKey] && CAT_BY_KEY[catKey].noBase) {
     best = { rate: 0, note: "No rewards here — paying by card usually costs a ~3% fee.", rotating: false, fallback: true };
