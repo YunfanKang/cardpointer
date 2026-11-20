@@ -205,6 +205,7 @@ const CARDS = [
         "2026-Q2": { keys: [], merchants: ["Amazon", "Whole Foods"], label: "Amazon, Whole Foods Market, Chase Travel, Feeding America" },
         "2026-Q3": { keys: ["gas", "transit", "entertainment"], label: "Gas & EV charging, public transit, select live entertainment, United Way" },
         "2026-Q4": { keys: ["groceries", "dining"], label: "Grocery stores (excl. Walmart & Target), dining, American Red Cross" },
+        "2027-Q1": { keys: ["groceries", "streaming"], label: "Grocery stores (excl. Walmart & Target), top streaming services" },
       },
     },
     note: "Mastercard. Also 5% on travel booked through Chase Travel. 3% dining incl. takeout & delivery.",
